@@ -1,0 +1,29 @@
+{
+    "name": "iz-preprocessor",
+    "displayName": "iz preprocessor",
+    "description": "Preprocessor for js and css, scss.",
+    "version": "0.0.1",
+    "publisher": "itozyun",
+    "engines": {
+        "vscode": "^1.0.0"
+    },
+    "categories": [
+        "Other"
+    ],
+    "activationEvents": [
+        "onCommand:extension.izPreprocessor"
+    ],
+    "main": "./extension",
+    "contributes": {
+        "commands": [{
+            "command": "extension.izPreprocessor",
+            "title": "iz preprocessor"
+        }]
+    },
+    "scripts": {
+        "postinstall": "node ./node_modules/vscode/bin/install"
+    },
+    "devDependencies": {
+        "vscode": "^0.11.0"
+    }
+}
