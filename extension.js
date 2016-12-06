@@ -9,26 +9,46 @@ function activate(context) {
     // This line of code will only be executed once when your extension is activated
     // console.log('Congratulations, your extension "iz preprocessor" is now active!');
 
-    var TARGET_FILETYPES = [ 'js', 'css', 'scss' ],
-        OUTPUT_FOLDER    = 'precompiled',
-        MAX_TARGET_FILES = 100, // https://github.com/Microsoft/vscode/issues/697
+    var MAX_TARGET_FILES = 100, // https://github.com/Microsoft/vscode/issues/697
+
         vscode   = require('vscode'),
         fs       = require('fs'),
         compiler = require('./lib/iz-preprocessor'),
-        com      = vscode.commands.registerCommand('extension.izPreprocessor', function() {
-
-        var ws              = vscode.workspace,
-            cfg             = ws.getConfiguration('izPreprocessor'),
-            targetFileTypes = [],
-            TEXT_LINES      = [],
-            wsRootPath      = ws.rootPath,
-            srcFilesMap, targetFileType, targetFiles, buildTargets, buildTarget,
+        com      = vscode.commands.registerCommand('extension.izPreprocessor',
+// settings.json  
+//        {
+//            "izPreprocessor.tasks" : {
+//                "scss" : [
+//                            {
+//                                "include" : "scss/**/*.scss",
+//                                "exclude" : "**/node_modules/**",
+//                                "output"  : ""
+//                            }
+//                        ],
+//                "js"   : [
+//                            {
+//                                "include" : "js/**/*.js",
+//                                "exclude" : "**/node_modules/**",
+//                                "output"  : ""
+//                            }
+//                        ]
+//            }
+//        }
+    function(){
+        var ws         = vscode.workspace,
+            wsRootPath = ws.rootPath,
+            config     = ws.getConfiguration('izPreprocessor'),
+            tasks      = config && config.tasks,
+            targetTextLines, srcFilesMap, targetFileType, outpotFolderPath, targetFiles, buildTargets, buildTarget,
             total, progress;
-
-        Array.prototype.push.apply( targetFileTypes, TARGET_FILETYPES );
 
         if( !wsRootPath ){
             vscode.window.showErrorMessage('Use of mainFile requires a folder to be opened');
+            return;
+        };
+
+        if( !tasks ){
+            vscode.window.showErrorMessage('(T-T) Not fonund "izPreprocessor.tasks" at settings.json.');
             return;
         };
 
@@ -37,16 +57,27 @@ function activate(context) {
         start();
 
         function start(){
-            targetFileType = targetFileTypes.shift();
-            //TEXT_LINES.lengh = 0;
-            TEXT_LINES  = [];
-            srcFilesMap = {};
+            var key, task;
 
-            if( targetFileType ){
-                ws.findFiles( targetFileType + '/**/*.' + targetFileType, '**/' + OUTPUT_FOLDER + '/**,**/node_modules/**', MAX_TARGET_FILES ).then( onFilesFound );
-            } else {
-                vscode.window.setStatusBarMessage( 'complete!' );
+            //targetTextLines.lengh = 0;
+            targetTextLines = [];
+            srcFilesMap     = {};
+
+            for( key in tasks ){
+                if( tasks[ key ] && tasks[ key ].length ){
+                    task = tasks[ key ].shift();
+
+                    targetFileType = key;
+                    outpotFolderPath = wsRootPath + task.output;
+
+                    ws.findFiles( task.include, task.exclude, MAX_TARGET_FILES ).then( onFilesFound );
+                    return;
+                } else {
+                    delete tasks[ key ];
+                };
             };
+
+            vscode.window.setStatusBarMessage( 'complete!' );
         };
 
         function onFilesFound( files ){
@@ -66,15 +97,15 @@ function activate(context) {
             
             if( targetFileUri ){
                 vscode.window.setStatusBarMessage( '[' + targetFileType + ']' + ( ++progress ) + '/' + total + ':reading' );
-                console.log('op ' + targetFileUri);
+
                 ws.openTextDocument( targetFileUri ).then( onFileOpened );
             } else {
                vscode.window.setStatusBarMessage( 'collectExComments' );
 
-                if( buildTargets = compiler.collectExComments( TEXT_LINES ) ){
+                if( buildTargets = compiler.collectExComments( targetTextLines ) ){
                     // http://stackoverflow.com/questions/13696148/node-js-create-folder-or-use-existing
                     // If you want a quick-and-dirty one liner, use this:
-                    fs.existsSync( wsRootPath + OUTPUT_FOLDER ) || fs.mkdirSync( wsRootPath + OUTPUT_FOLDER );
+                    fs.existsSync( outpotFolderPath ) || fs.mkdirSync( outpotFolderPath );
 
                     total    = buildTargets.length;
                     progress = -1;
@@ -86,10 +117,11 @@ function activate(context) {
         };
 
         function onFileOpened(d){
-            var textLines = d.getText().split( '\r\n' ).join( '\n' ).split( '\n' );
+            var textLines = d.getText().split( '\r' ).join( '' ).split( '\n' );
+
             srcFilesMap[ d.fileName ] = textLines.length;
             console.log( d.fileName, textLines.length );
-            TEXT_LINES.push.apply( TEXT_LINES, textLines );
+            targetTextLines.push.apply( targetTextLines, textLines );
             readFilesThenCollectExComments();
         };
 
@@ -97,7 +129,7 @@ function activate(context) {
             buildTarget = buildTargets.shift();
             if( buildTarget ){
                 vscode.window.setStatusBarMessage( '[' + targetFileType + ']' + ( ++progress ) + '/' + total + ':[' + buildTarget + ']' );
-                fs.open( wsRootPath + OUTPUT_FOLDER + '\\' + buildTarget + '.' + targetFileType, 'w', onFileCreated );
+                fs.open( outpotFolderPath + '\\' + buildTarget + '.' + targetFileType, 'w', onFileCreated );
             } else {
                 vscode.window.setStatusBarMessage( '[' + targetFileType + ']' + ( ++progress ) + '/' + total + ':** done! **' );
                 start();
@@ -105,7 +137,7 @@ function activate(context) {
         };
 
         function onFileCreated(err, fd){
-            var textLines = compiler.preCompile( TEXT_LINES, buildTarget ),
+            var textLines = compiler.preCompile( targetTextLines, buildTarget ),
                 buffer;
 
             if( textLines && fd ){

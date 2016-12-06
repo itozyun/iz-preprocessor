@@ -138,7 +138,7 @@ h1 { color : red; }
 | `//@PC`                    | dfn build target                 |                          |
 | `//#mobile[@iOS,#WinMobi]` | dfn group                        | //#xx[<@xx/#xx>, ...]    |
 | `//+XHR`                   | dfn build option                 |                          |
-| `//+ajax[+XHR,+MSXML]`     | dfn build option with dependenｔ  | //+xx[+xx, ...]          |
+| `//+ajax[+XHR,+MSXML]`     | dfn build option with dependenｔ | //+xx[+xx, ...]          |
 | `//!ajax`                  | dfn import                       |                          |
 
 ### range
@@ -152,5 +152,35 @@ h1 { color : red; }
 | `//_{^@iOS`                | not range                        | keep without @iOS        |
 | `//_<top`                  | move to top range                | move to top for optimized builds |
 | `//_<bottom50`             | move to bottom range             | `//_<bottom(Order:0~100)` move to bottom for optimized builds |
+
+## settings.json example
+From version 0.0.2, add build parameters to settings.json.
+
+~~~json
+}
+    "izPreprocessor.tasks" : {
+        "scss" : [
+                    {
+                        "include" : "scss/**/*.scss",
+                        "exclude" : "**/node_modules/**",
+                        "output"  : "precompiled\\scss"
+                    }
+                ],
+        "js" : [
+                    {
+                        "include" : "js/**/*.js",
+                        "exclude" : "**/node_modules/**",
+                        "output"  : "precompiled\\js"
+                    }
+                ]
+    }
+}
+~~~
+
+## Projects in use
+
+1. [web-doc-base](https://github.com/itozyun/web-doc-base) "Super project for itozyun's Web document projects"
+2. [blogger-base](https://github.com/itozyun/blogger-base) "Common project for Blogger templete"
+3. [OutCloud](http://outcloud.blogspot.com/) "itozyun's blog"
 
 **Enjoy!**
