@@ -38,7 +38,7 @@ function activate(context) {
         var ws         = vscode.workspace,
             wsRootPath = ws.rootPath,
             config     = ws.getConfiguration('izPreprocessor'),
-            tasks      = config && config.tasks,
+            tasks      = config && JSON.parse(JSON.stringify(config.tasks)), // deep copy
             targetTextLines, srcFilesMap, targetFileType, outpotFolderPath, targetFiles, buildTargets, buildTarget,
             total, progress;
 
