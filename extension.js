@@ -52,7 +52,7 @@ function activate(context) {
             return;
         };
 
-        wsRootPath = wsRootPath + ( wsRootPath.substr( wsRootPath.length - 1 ) === '\\' ? '' : '\\' );
+        wsRootPath = wsRootPath.charAt( wsRootPath.length - 1 ) === '\\' ? wsRootPath.substr( 0, wsRootPath.length - 1 ) : wsRootPath;
         ws.saveAll();
         start();
 
@@ -67,8 +67,8 @@ function activate(context) {
                 if( tasks[ key ] && tasks[ key ].length ){
                     task = tasks[ key ].shift();
 
-                    targetFileType = key;
-                    outpotFolderPath = wsRootPath + task.output;
+                    targetFileType   = key;
+                    outpotFolderPath = task.output.split( '/' ).join( '\\' );
 
                     ws.findFiles( task.include, task.exclude, MAX_TARGET_FILES ).then( onFilesFound );
                     return;
@@ -93,7 +93,10 @@ function activate(context) {
         };
         
         function readFilesThenCollectExComments(){
-            var targetFileUri = targetFiles.shift();
+            var targetFileUri = targetFiles.shift(),
+                paths = outpotFolderPath.split( '\\' ),
+                folderPath = wsRootPath,
+                path;
             
             if( targetFileUri ){
                 vscode.window.setStatusBarMessage( '[' + targetFileType + ']' + ( ++progress ) + '/' + total + ':reading' );
@@ -105,7 +108,21 @@ function activate(context) {
                 if( buildTargets = compiler.collectExComments( targetTextLines ) ){
                     // http://stackoverflow.com/questions/13696148/node-js-create-folder-or-use-existing
                     // If you want a quick-and-dirty one liner, use this:
-                    fs.existsSync( outpotFolderPath ) || fs.mkdirSync( outpotFolderPath );
+
+                    while( paths.length ){
+                        path = paths.shift();
+                        if( !path || path === '.' ){
+                            path = paths.shift();
+                        };
+                        folderPath += '\\' + path;
+                        try {
+                            //入れ子のフォルダの作成で失敗
+                            fs.existsSync( folderPath ) || fs.mkdirSync( folderPath );
+                        } catch(e){
+                            vscode.window.showErrorMessage('(T-T) Failed to create folder [' + outpotFolderPath + ']' );
+                            return;
+                        };
+                    };
 
                     total    = buildTargets.length;
                     progress = -1;
@@ -129,7 +146,7 @@ function activate(context) {
             buildTarget = buildTargets.shift();
             if( buildTarget ){
                 vscode.window.setStatusBarMessage( '[' + targetFileType + ']' + ( ++progress ) + '/' + total + ':[' + buildTarget + ']' );
-                fs.open( outpotFolderPath + '\\' + buildTarget + '.' + targetFileType, 'w', onFileCreated );
+                fs.open( wsRootPath + '\\' + outpotFolderPath + '\\' + buildTarget + '.' + targetFileType, 'w', onFileCreated );
             } else {
                 vscode.window.setStatusBarMessage( '[' + targetFileType + ']' + ( ++progress ) + '/' + total + ':** done! **' );
                 start();
