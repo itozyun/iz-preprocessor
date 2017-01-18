@@ -9,50 +9,56 @@ function activate(context) {
     // This line of code will only be executed once when your extension is activated
     // console.log('Congratulations, your extension "iz preprocessor" is now active!');
 
-    var MAX_TARGET_FILES = 100, // https://github.com/Microsoft/vscode/issues/697
-
-        vscode   = require('vscode'),
-        fs       = require('fs'),
-        compiler = require('./lib/iz-preprocessor'),
+    var vscode   = require('vscode'),
+        compiler = require('./libs/iz-preprocessor'),
+        izFS     = require('./libs/izFS'),
         com      = vscode.commands.registerCommand('extension.izPreprocessor',
 // settings.json  
 //        {
 //            "izPreprocessor.tasks" : {
 //                "scss" : [
 //                            {
-//                                "include" : "scss/**/*.scss",
-//                                "exclude" : "**/node_modules/**",
+//                                "path"    : "scss/**/.scss",
+//                                "output"  : ""
+//                            },
+//                            {
+//                                "find"    : { from:"",include:"scss/**/*.scss", exclude:"" },
 //                                "output"  : ""
 //                            }
 //                        ],
 //                "js"   : [
 //                            {
-//                                "include" : "js/**/*.js",
-//                                "exclude" : "**/node_modules/**",
+//                                "find"    : { from:"",include:"js/**/*.js", exclude:"" },
 //                                "output"  : ""
 //                            }
 //                        ]
 //            }
 //        }
     function(){
-        var ws         = vscode.workspace,
-            wsRootPath = ws.rootPath,
-            config     = ws.getConfiguration('izPreprocessor'),
-            tasks      = config && JSON.parse(JSON.stringify(config.tasks)), // deep copy
-            targetTextLines, srcFilesMap, targetFileType, outpotFolderPath, targetFiles, buildTargets, buildTarget,
+        var ws     = vscode.workspace,
+            fs     = new izFS( ws.rootPath ),
+            config = ws.getConfiguration('izPreprocessor'),
+            tasks, targetTextLines, srcFilesMap, targetFileType, outpotFolderPath, buildTargets,
             total, progress;
 
-        if( !wsRootPath ){
-            vscode.window.showErrorMessage('Use of mainFile requires a folder to be opened');
+        if( !ws.rootPath ){
+            vscode.window.showErrorMessage('(T-T) Use of mainFile requires a folder to be opened');
             return;
         };
 
-        if( !tasks ){
-            vscode.window.showErrorMessage('(T-T) Not fonund "izPreprocessor.tasks" at settings.json.');
+        if( !config.tasks ){
+            vscode.window.showErrorMessage('(T-T) izPreprocessor.tasks not found');
+            return;   
+        };
+
+        try {
+            tasks = JSON.parse(JSON.stringify(config.tasks)); // deep copy
+            total = tasks.length;
+        } catch(o_O){
+            vscode.window.showErrorMessage( '(T-T) ' + o_O );
             return;
         };
 
-        wsRootPath = wsRootPath.charAt( wsRootPath.length - 1 ) === '\\' ? wsRootPath.substr( 0, wsRootPath.length - 1 ) : wsRootPath;
         ws.saveAll();
         start();
 
@@ -68,9 +74,23 @@ function activate(context) {
                     task = tasks[ key ].shift();
 
                     targetFileType   = key;
-                    outpotFolderPath = task.output.split( '/' ).join( '\\' );
+                    outpotFolderPath = task.output;
 
-                    ws.findFiles( task.include, task.exclude, MAX_TARGET_FILES ).then( onFilesFound );
+                    if( task.find ){
+                        fs.find({
+                            rootPath : task.find.rootPath,
+                            include  : task.find.include,
+                            exclude  : task.find.exclude,
+                            getText  : true
+                            }, findFileDispatcher );
+                    } else if( task.path ){
+                        fs.read({
+                            path     : task.path,
+                            getText  : true
+                            }, readFileDispatcher );
+                    } else {
+                        vscode.window.showErrorMessage('(T-T) Task for [' + key + '] has no "find" or "path" prperty.');
+                    };
                     return;
                 } else {
                     delete tasks[ key ];
@@ -80,90 +100,64 @@ function activate(context) {
             vscode.window.setStatusBarMessage( 'complete!' );
         };
 
-        function onFilesFound( files ){
-            if( total = files.length ){
-                files.sort();
-                progress    = -1;
-                targetFiles = files;
-                readFilesThenCollectExComments();
-            } else {
-                vscode.window.setStatusBarMessage( 'fileType:' + targetFileType + ' was not found.' );
-                start();
-            };
-        };
-        
-        function readFilesThenCollectExComments(){
-            var targetFileUri = targetFiles.shift(),
-                paths = outpotFolderPath.split( '\\' ),
-                folderPath = wsRootPath,
-                path;
-            
-            if( targetFileUri ){
-                vscode.window.setStatusBarMessage( '[' + targetFileType + ']' + ( ++progress ) + '/' + total + ':reading' );
-
-                ws.openTextDocument( targetFileUri ).then( onFileOpened );
-            } else {
-               vscode.window.setStatusBarMessage( 'collectExComments' );
-
-                if( buildTargets = compiler.collectExComments( targetTextLines ) ){
-                    // http://stackoverflow.com/questions/13696148/node-js-create-folder-or-use-existing
-                    // If you want a quick-and-dirty one liner, use this:
-
-                    while( paths.length ){
-                        path = paths.shift();
-                        if( !path || path === '.' ){
-                            path = paths.shift();
-                        };
-                        folderPath += '\\' + path;
-                        try {
-                            //入れ子のフォルダの作成で失敗
-                            fs.existsSync( folderPath ) || fs.mkdirSync( folderPath );
-                        } catch(e){
-                            vscode.window.showErrorMessage('(T-T) Failed to create folder [' + outpotFolderPath + ']' );
-                            return;
-                        };
-                    };
-
-                    total    = buildTargets.length;
-                    progress = -1;
+        function findFileDispatcher( ite ){
+            switch( ite.type ){
+                case 'findFileSuccess' :
+                    saveTextLines( ite );
+                    ite.next();
+                    break;
+                case 'findFileError' :
+                    vscode.window.showErrorMessage( '(T-T) ' + ite.error );
+                    ite.kill();
+                    break;
+                case 'findFileComplete' :
+                    buildTargets = compiler.collectExComments( targetTextLines );
                     createFile();
-                } else {
-                    vscode.window.setStatusBarMessage( '[' + targetFileType + ']' + 'error at collectExComments' );
-                };
+                    break;
             };
         };
 
-        function onFileOpened(d){
-            var textLines = d.getText().split( '\r' ).join( '' ).split( '\n' );
+        function readFileDispatcher( ite ){
+            switch( ite.type ){
+                 case 'readFileSuccess' :
+                    saveTextLines( ite );
+                    buildTargets = compiler.collectExComments( targetTextLines );
+                    createFile();
+                    break;
+                case 'readFileError' :
+                    vscode.window.showErrorMessage( '(T-T) ' + ite.error );
+                    break;
+            };
+        };
 
-            srcFilesMap[ d.fileName ] = textLines.length;
-            console.log( d.fileName, textLines.length );
+        function saveTextLines( ite ){
+            var textLines = ite.data.split( '\r' ).join( '' ).split( '\n' );
+
+            srcFilesMap[ ite.path ] = textLines.length;
             targetTextLines.push.apply( targetTextLines, textLines );
-            readFilesThenCollectExComments();
         };
 
         function createFile(){
-            buildTarget = buildTargets.shift();
+            var buildTarget = buildTargets.shift();
+
             if( buildTarget ){
                 vscode.window.setStatusBarMessage( '[' + targetFileType + ']' + ( ++progress ) + '/' + total + ':[' + buildTarget + ']' );
-                fs.open( wsRootPath + '\\' + outpotFolderPath + '\\' + buildTarget + '.' + targetFileType, 'w', onFileCreated );
+                fs.write( createPath( outpotFolderPath, buildTarget + '.' + targetFileType ),
+                compiler.preCompile( targetTextLines, buildTarget ).join( '\n' ), writeFileDispatcher );
             } else {
                 vscode.window.setStatusBarMessage( '[' + targetFileType + ']' + ( ++progress ) + '/' + total + ':** done! **' );
                 start();
             };
         };
 
-        function onFileCreated(err, fd){
-            var textLines = compiler.preCompile( targetTextLines, buildTarget ),
-                buffer;
-
-            if( textLines && fd ){
-                buffer = new Buffer( textLines.join( '\r\n' ) );
-                fs.writeSync( fd, buffer, 0, buffer.length );
-                fs.close(fd);
-                createFile();
-            } else {
-                vscode.window.setStatusBarMessage( 'error at preCompile[' + buildTarget + ']' + err );
+        function writeFileDispatcher( e ){
+            switch( e.type ){
+                case 'writeFileSuccess' :
+                    createFile();
+                    break;
+                case 'writeFileError' :
+                    vscode.window.showErrorMessage( '(T-T) ' + e.error );
+                    break;
             };
         };
 
@@ -176,6 +170,12 @@ function activate(context) {
                 if( line < 0 ) break;
             };
             return { fileName : file, lineAt : _line };
+        };
+
+        function createPath( a, b ){
+            if( a.charAt( a.length - 1 ) === '/' ) a = a.substr( 0, a.length - 1 );
+            if( b.charAt( 0 ) === '/' ) b = b.substr( 1 );
+            return a + '/' + b;
         };
     });
 

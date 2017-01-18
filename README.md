@@ -154,23 +154,30 @@ h1 { color : red; }
 | `//_<bottom50`             | move to bottom range             | `//_<bottom(Order:0~100)` move to bottom for optimized builds |
 
 ## settings.json example
+From version 0.0.4, the file path is now two ways, "path" and "find".
 From version 0.0.2, add build parameters to settings.json.
 
 ~~~json
-}
+{
     "izPreprocessor.tasks" : {
         "scss" : [
                     {
-                        "include" : "scss/**/*.scss",
-                        "exclude" : "**/node_modules/**",
-                        "output"  : "precompiled\\scss"
+                        "path"   : "scss/mobile.scss",
+                        "output" : "precompiled_2/scss"
+                    },
+                    {
+                        "find"   : {
+                            "rootPath" : "source",
+                            "include"  : "scss/**/*.scss",
+                            "exclude"  : "node_modules"
+                        },
+                        "output" : "precompiled/scss"
                     }
                 ],
         "js" : [
                     {
-                        "include" : "js/**/*.js",
-                        "exclude" : "**/node_modules/**",
-                        "output"  : "precompiled\\js"
+                        "path"   : "js/main.js",
+                        "output" : "precompiled/js"
                     }
                 ]
     }

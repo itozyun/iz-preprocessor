@@ -1,29 +1,45 @@
 {
-    "name": "iz-preprocessor",
-    "displayName": "iz preprocessor",
-    "description": "Preprocessor for js and css, scss.",
-    "version": "0.0.4",
-    "publisher": "itozyun",
-    "engines": {
-        "vscode": "^1.0.0"
-    },
-    "categories": [
-        "Other"
-    ],
-    "activationEvents": [
-        "onCommand:extension.izPreprocessor"
-    ],
-    "main": "./extension",
-    "contributes": {
-        "commands": [{
-            "command": "extension.izPreprocessor",
-            "title": "iz preprocessor"
-        }]
-    },
-    "scripts": {
-        "postinstall": "node ./node_modules/vscode/bin/install"
-    },
-    "devDependencies": {
-        "vscode": "^0.11.0"
-    }
+  "name": "iz-preprocessor",
+  "displayName": "iz preprocessor",
+  "description": "Preprocessor for js and css, scss.",
+  "version": "0.0.4",
+  "publisher": "itozyun",
+  "galleryBanner": {
+    "color": "#5c2d91",
+    "theme": "dark"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/itozyun/iz-preprocessor.git"
+  },
+  "bugs": {
+    "url": "https://github.com/itozyun/iz-preprocessor/issues"
+  },
+  "engines": {
+    "vscode": "^1.0.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:extension.izPreprocessor"
+  ],
+  "main": "./extension",
+  "contributes": {
+    "commands": [
+      {
+        "command": "extension.izPreprocessor",
+        "title": "iz preprocessor"
+      }
+    ]
+  },
+  "scripts": {
+    "postinstall": "node ./node_modules/vscode/bin/install"
+  },
+  "dependencies": {
+    "minimatch": ">0.0.0"
+  },
+  "devDependencies": {
+    "vscode": "^0.11.0"
+  }
 }
