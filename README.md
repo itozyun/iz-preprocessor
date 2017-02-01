@@ -184,6 +184,10 @@ From version 0.0.2, add build parameters to settings.json.
 }
 ~~~
 
+## Links
+
+1. [Visual Studio Marketplace > iz preprocessor](https://marketplace.visualstudio.com/items?itemName=itozyun.iz-preprocessor)
+
 ## Projects in use
 
 1. [web-doc-base](https://github.com/itozyun/web-doc-base) "Super project for itozyun's Web document projects"

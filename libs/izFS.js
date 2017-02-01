@@ -127,6 +127,8 @@ function find( options, callback ){
 
 // TODO require('path')
 function createPath( p ){
+    // fix for path.isAbsolute( 'R:' ) -> false.
+    if( p.split( '' ).pop() === ':' ) return path.normalize( p );
     if( path.isAbsolute( p ) ) return path.normalize( p );
     return path.join( this._rootPath, p );
 };
@@ -192,7 +194,7 @@ function write( p, bufferOrString, callback ){
         if( exist ){
             createFile();
         } else {
-            pathElements = path.dirname( p ).split( path.sep );
+            pathElements = path.dirname( p ).split( '/' );//path.sep );
             targetFolderDepth = existFolderDepth = pathElements.length;
             checkFolderExist();
         };
