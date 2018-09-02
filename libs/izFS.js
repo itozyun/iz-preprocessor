@@ -41,9 +41,16 @@ izFS.prototype.createPath = createPath;
 function find( options, callback ){
     var context         = this,
         filesAndFolders = [],
-        currentPath     = options.rootPath || '',
+        pathList        = options.rootPath || [ '' ],
         index           = -1,
-        targetFile, killed;
+        currentPath, targetFile, killed;
+
+    if( typeof pathList === 'string' ){
+        currentPath = pathList;
+        pathList    = [];
+    } else {
+        currentPath = pathList.shift();
+    };
 
     fs.readdir( context.createPath( currentPath ), onReadDir );
 
@@ -54,7 +61,9 @@ function find( options, callback ){
             if( err ){
                 error( err );
             } else {
-                while( p = list.shift() ) filesAndFolders.push( path.join( currentPath, p ) );
+                while( p = list.shift() ){
+                    filesAndFolders.push( path.join( currentPath, p ) );
+                };
                 next();
             };
         };
@@ -62,8 +71,12 @@ function find( options, callback ){
 
     function next(){
         if( !killed ){
-            if( currentPath = filesAndFolders[ ++index ] ){
-                context.read( { path : currentPath, getText : options.getText }, openFileDispatcher );
+            if( currentPath = filesAndFolders[ index + 1 ] ){
+                ++index;
+                context.read( { path : currentPath, getText : options.getText }, openFileDispatcher ); 
+            } else
+            if( currentPath = pathList.shift() ){
+                context.read( { path : currentPath, getText : options.getText }, openFileDispatcher ); 
             } else {
                 callback( { type : 'findFileComplete' } );
                 reset();
@@ -72,18 +85,24 @@ function find( options, callback ){
     };
 
     function openFileDispatcher( e ){
+        var fileName;
+
         if( killed ) return;
+
+        fileName = e.path.split( '/' ).pop();
 
         switch( e.type ){
             case 'readFileSuccess' :
+                // e.stats.isDirectory() || console.log( minimatch( fileName, options.include ) );
                 if( e.stats.isDirectory() ){
-                    if( !options.exclude || !minimatch( e.path, options.exclude ) ){
+                    if( !options.exclude || !minimatch( fileName, options.exclude ) ){
                         fs.readdir( context.createPath( e.path ), onReadDir );
                     } else {
                         next();
                     };
-                } else if( minimatch( e.path, options.include ) &&
-                    ( !options.exclude || !minimatch( e.path, options.exclude ) )
+                } else if(
+                    ( !options.include || minimatch( fileName, options.include ) ) &&
+                    ( !options.exclude || !minimatch( fileName, options.exclude ) )
                 ){
                     var obj = {
                         type   : 'findFileSuccess',

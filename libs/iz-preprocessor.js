@@ -34,11 +34,20 @@ function inheritClass( Constructor, members, classMembers ){
 };
 
 /*--------------------------------------------------
+ * Error
+ */
+function RangeError( msg, lineAt, range ){
+	this.message = msg || '';
+	this.lineAt  = lineAt || 0;
+	this.range   = range || '';
+}
+
+/*--------------------------------------------------
  * ItemBase
  */
 var Base = createClass(
 	function( tag, title, summary ){
-		this.tag     = tag;
+		this.tag = tag || '';
 		if( title ) this.title = title;
 		if( summary ) this.summary = summary;
 	},
@@ -64,7 +73,12 @@ var Target = Base.inherits(
 	},
 	{
 		type : 1,
-		isTarget : function(){ return this === Target.current; }
+
+		isTarget : function(){ return this === Target.current; },
+
+		toString : function(){
+			return '@' + this.tag;	
+		}
 	},
 	{
 		LIST    : [],
@@ -124,6 +138,10 @@ var Group = Base.inherits(
 				if( this.members[ i ].isTarget() ) return true;
 			};
 			return false;
+		},
+
+		toString : function(){
+			return '[' + this.members.join( ',' ) + ']';	
 		}
 	},
 	{
@@ -184,6 +202,10 @@ var Option = Base.inherits(
 			};
 			
 			return false;
+		},
+
+		toString : function(){
+			return '#' + this.tag;
 		}
 	},
 	{
@@ -222,7 +244,7 @@ var Range = createClass(
 		this.notFlags = notFlags;
 	},
 	{
-		tags     : null, // array.<Target|Group|Option|Move>
+		tags     : null, // array.<Target|Group|Option|ReplaceRange>
 		notFlags : 0,
 		start    : 0,
 		end      : 0,
@@ -236,14 +258,8 @@ var Range = createClass(
 		},
 
 		getTagNames : function(){
-			var i = 0, l = this.tags ? this.tags.length : 0, ary = [];
-
 			if( this === Range.top ) return 'ROOT';
-
-			for( ; i < l; ){
-				ary.push( this.tags.tag );
-			};
-			return ary.join( ',' );
+			return this.tags.join( ',' );
 		},
 
 		eq : function( tags ){
@@ -293,6 +309,10 @@ var Range = createClass(
 			};
 
 			return false;
+		},
+
+		toString : function(){
+			return '_{' + this.getTagNames() + '}_';
 		}
 	},
 	{
@@ -331,8 +351,11 @@ var ReplaceRange = Range.inherits(
 
 			// 親に ReplaceRange がいないか？確認
 		},
-		eq    : function(){ return false; },
-		live  : function(){ return this.parent.live(); }
+		eq       : function(){ return false; },
+		live     : function(){ return this.parent.live(); },
+		toString : function(){
+			return '<' + this.getTagNames() + '>';
+		}
 	},
 	{
 		LIST     : [],
@@ -392,8 +415,8 @@ var ReplaceRange = Range.inherits(
 					last = parseConditionName( txt, line, pos, last );
 					if( !last ){
 						// error
-						console.log( 'Range定義エラー line at ', line );
-						return;
+						console.log( 'Range definition error. line at', line );
+						throw new RangeError( 'Range definition error.', line, sourceText );
 					};
 					break;
 	
@@ -402,8 +425,8 @@ var ReplaceRange = Range.inherits(
 					obj = parseConditionName( txt, line, pos );
 					if( !last.eq( obj ) ){
 						// error
-						console.log( 'Rangeの終端不一致 line at ', line, ' 現在のRange=', ' start=', last.start );
-						return;
+						console.log( 'Mismatch at the end of Range.', line, ' 現在のRange=', ' start=', last.start );
+						throw new RangeError( 'Mismatch at the end of Range.', line, last.toString() );
 					};
 					last.end = line;
 					last = last.parent || null;
@@ -420,13 +443,13 @@ var ReplaceRange = Range.inherits(
 				case '//_>' :
 					if( last.constructor !== ReplaceRange ){
 						// error
-						console.log( 'ReplaceRangeの終端不一致 line at ', line );
-						return;
+						console.log( 'Mismatch at the end of Range.line at ', line );
+						throw new RangeError( 'Mismatch at the end of Range.', line, last.toString() );
 					};
 					if( last.dir !== dir || last.depth !== depth ){
 						// error
-						console.log( 'ReplaceRangeの終端不一致 line at ', line );
-						return;
+						console.log( 'Mismatch at the end of Range. line at ', line );
+						throw new RangeError( 'Mismatch at the end of Range.', line, last.toString() );
 					};
 					last.end = line;
 					last = last.parent || null;
@@ -436,8 +459,8 @@ var ReplaceRange = Range.inherits(
 
 		
 		if( last !== topRange ){
-			console.log( /* last.getTagNames(), */ ' 閉じられていない line at ', last.start, textLines[ last.start ] );
-			return;
+			console.log( 'No termination of Range. line at ', last.start, textLines[ last.start ] );
+			throw new RangeError( 'No termination of Range.', last.start, last.toString() );
 		} else {
 			return last;
 		};

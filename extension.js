@@ -111,8 +111,7 @@ function activate(context) {
                     ite.kill();
                     break;
                 case 'findFileComplete' :
-                    buildTargets = compiler.collectExComments( targetTextLines );
-                    createFile();
+                    collectExComments();
                     break;
             };
         };
@@ -121,14 +120,38 @@ function activate(context) {
             switch( ite.type ){
                  case 'readFileSuccess' :
                     saveTextLines( ite );
-                    buildTargets = compiler.collectExComments( targetTextLines );
-                    createFile();
+                    collectExComments();
                     break;
                 case 'readFileError' :
                     vscode.window.showErrorMessage( '(T-T) ' + ite.error );
                     break;
             };
         };
+
+        function collectExComments(){
+            var info;
+
+            try {
+                buildTargets = compiler.collectExComments( targetTextLines );
+            } catch(o_O){
+                info = globalLineNumberToLocal( o_O.lineAt );
+                // console.log( o_O.message + '\nfile:' + info.name + ' line at ' + info.lineAt + '. range:' + o_O.range );
+                vscode.window.showErrorMessage( o_O.message + '\nfile:' + info.name + ' line at ' + info.lineAt + '. range:' + o_O.range );
+                return;
+            }
+            createFile();
+
+            function globalLineNumberToLocal( line ){
+                var file, _line;
+    
+                for( file in srcFilesMap ){
+                    _line = line;
+                    line -= srcFilesMap[ file ];
+                    if( line < 0 ) break;
+                };
+                return { name : file, lineAt : _line };
+            };
+        }
 
         function saveTextLines( ite ){
             var textLines = ite.data.split( '\r' ).join( '' ).split( '\n' );
@@ -159,17 +182,6 @@ function activate(context) {
                     vscode.window.showErrorMessage( '(T-T) ' + e.error );
                     break;
             };
-        };
-
-        function globalLineNumberToLocal( line ){
-            var file, _line;
-
-            for( file in srcFilesMap ){
-                _line = line;
-                line -= srcFilesMap[ file ];
-                if( line < 0 ) break;
-            };
-            return { fileName : file, lineAt : _line };
         };
 
         function createPath( a, b ){

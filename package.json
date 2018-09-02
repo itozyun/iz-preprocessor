@@ -2,7 +2,7 @@
   "name": "iz-preprocessor",
   "displayName": "iz preprocessor",
   "description": "Preprocessor for js and css, scss.",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "publisher": "itozyun",
   "galleryBanner": {
     "color": "#5c2d91",
