@@ -22,13 +22,13 @@ function activate(context) {
 //                                "output"  : ""
 //                            },
 //                            {
-//                                "find"    : { from:"",include:"scss/**/*.scss", exclude:"" },
+//                                "find"    : { rootPath:"",include:"scss/**.scss", exclude:"" },
 //                                "output"  : ""
 //                            }
 //                        ],
 //                "js"   : [
 //                            {
-//                                "find"    : { from:"",include:"js/**/*.js", exclude:"" },
+//                                "find"    : { rootPath:"",include:"js/**.js", exclude:"" },
 //                                "output"  : ""
 //                            }
 //                        ]
@@ -161,12 +161,18 @@ function activate(context) {
         };
 
         function createFile(){
-            var buildTarget = buildTargets.shift();
+            var buildTarget = buildTargets.shift(),
+                texts;
 
             if( buildTarget ){
                 vscode.window.setStatusBarMessage( '[' + targetFileType + ']' + ( ++progress ) + '/' + total + ':[' + buildTarget + ']' );
-                fs.write( createPath( outpotFolderPath, buildTarget + '.' + targetFileType ),
-                compiler.preCompile( targetTextLines, buildTarget ).join( '\n' ), writeFileDispatcher );
+                texts = compiler.preCompile( targetTextLines, buildTarget );
+                fs.write(
+                    createPath( outpotFolderPath, buildTarget + '.' + targetFileType ),
+                    texts.join( '\n' )
+                        .split( String.fromCharCode( 65279 ) ).join( '' ), // Remove BOM
+                    writeFileDispatcher
+                );
             } else {
                 vscode.window.setStatusBarMessage( '[' + targetFileType + ']' + ( ++progress ) + '/' + total + ':** done! **' );
                 start();
