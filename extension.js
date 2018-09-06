@@ -14,32 +14,39 @@ function activate(context) {
         izFS     = require('./libs/izFS'),
         com      = vscode.commands.registerCommand('extension.izPreprocessor',
 // settings.json  
+//  {
+//    "izPreprocessor.tasks" : {
+//      "scss" : [
 //        {
-//            "izPreprocessor.tasks" : {
-//                "scss" : [
-//                            {
-//                                "path"    : "scss/**/.scss",
-//                                "output"  : ""
-//                            },
-//                            {
-//                                "find"    : { rootPath:"",include:"scss/**.scss", exclude:"" },
-//                                "output"  : ""
-//                            }
-//                        ],
-//                "js"   : [
-//                            {
-//                                "find"    : { rootPath:"",include:"js/**.js", exclude:"" },
-//                                "output"  : ""
-//                            }
-//                        ]
-//            }
-//        }
+//          "path"    : "scss/inline.scss",
+//          "output"  : "./precompiled/scss1"
+//         },
+//         {
+//           "find"    : { rootPath:[ "", "", "" ], include:"scss**.scss", exclude:"" },
+//           "output"  : "./precompiled/scss2"
+//         }
+//       ],
+//       "js"  : [
+//         {
+//           "find"    : { rootPath:"./src", include:"js**.js", exclude:"" },
+//           "output"  : "./precompiled/js",
+//           "imports" : [ "dev", "mobile", "legacybrowser" ],
+//           "prefix"  : "dev-"
+//         },
+//         {
+//           "constitution" : [ ";(function(){", { path : [ "first.js", "last.js" ] }, "})();" ],
+//           ...
+//         }
+//       ]
+//    }
+//  }
     function(){
         var ws     = vscode.workspace,
             fs     = new izFS( ws.rootPath ),
             config = ws.getConfiguration('izPreprocessor'),
-            tasks, targetTextLines, srcFilesMap, targetFileType, outpotFolderPath, buildTargets,
-            total, progress;
+            tasks, targetTextLines, srcFilesMap,
+            targetFileType, outpotFolderPath, importOptions, prefix,
+            buildTargets, total, progress;
 
         if( !ws.rootPath ){
             vscode.window.showErrorMessage('(T-T) Use of mainFile requires a folder to be opened');
@@ -75,6 +82,8 @@ function activate(context) {
 
                     targetFileType   = key;
                     outpotFolderPath = task.output;
+                    importOptions    = task.imports || [];
+                    prefix           = task.prefix  || '';
 
                     if( task.find ){
                         fs.find({
@@ -132,7 +141,7 @@ function activate(context) {
             var info;
 
             try {
-                buildTargets = compiler.collectExComments( targetTextLines );
+                buildTargets = compiler.collectExComments( targetTextLines, importOptions );
             } catch(o_O){
                 info = globalLineNumberToLocal( o_O.lineAt );
                 // console.log( o_O.message + '\nfile:' + info.name + ' line at ' + info.lineAt + '. range:' + o_O.range );
@@ -147,9 +156,9 @@ function activate(context) {
                 for( file in srcFilesMap ){
                     _line = line;
                     line -= srcFilesMap[ file ];
-                    if( line < 0 ) break;
+                    if( line <= 0 ) break;
                 };
-                return { name : file, lineAt : _line };
+                return { name : file, lineAt : _line + 1 };
             };
         }
 
@@ -168,7 +177,7 @@ function activate(context) {
                 vscode.window.setStatusBarMessage( '[' + targetFileType + ']' + ( ++progress ) + '/' + total + ':[' + buildTarget + ']' );
                 texts = compiler.preCompile( targetTextLines, buildTarget );
                 fs.write(
-                    createPath( outpotFolderPath, buildTarget + '.' + targetFileType ),
+                    createPath( outpotFolderPath, prefix + buildTarget + '.' + targetFileType ),
                     texts.join( '\n' )
                         .split( String.fromCharCode( 65279 ) ).join( '' ), // Remove BOM
                     writeFileDispatcher

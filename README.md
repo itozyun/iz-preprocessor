@@ -154,11 +154,23 @@ h1 { color : red; }
 | `//_<bottom50`             | move to bottom range             | `//_<bottom(Order:0~100)` move to bottom for optimized builds |
 
 ## settings.json example
+From version 0.0.8, "prefix" and "imports" are available.
+
 From version 0.0.6, "rootPath" accepts two types of "path String" or "path Arrays".
 
 From version 0.0.4, the file path is now two ways, "path" and "find".
 
 From version 0.0.2, add build parameters to settings.json.
+
+| name      | name       | type                      | desc                     | optional |
+|:----------|:-----------|:--------------------------|:-------------------------|:---------|
+| `path`    |            | String                    | file path                |          |
+| `find`    | `rootPath` | String \| Array.\<String\>| root folder path         |          |
+|           | `include`  | String                    | @see minimatch, fs       | v        |
+|           | `exclude`  | String                    | @see minimatch, fs       | v        |
+| `output`  |            | String                    | Output folder path       |          |
+| `prefix`  |            | String                    | Prefix of output filename| v        |
+| `imports` |            | Array.\<String\>          | ["ajax"]                 | v        |
 
 ~~~json
 {
@@ -171,7 +183,7 @@ From version 0.0.2, add build parameters to settings.json.
                     {
                         "find"   : {
                             "rootPath" : "source",
-                            "include"  : "scss/**/*.scss",
+                            "include"  : "scss/**.scss",
                             "exclude"  : "node_modules"
                         },
                         "output" : "precompiled_1/scss"

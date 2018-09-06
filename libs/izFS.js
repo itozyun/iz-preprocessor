@@ -144,7 +144,6 @@ function find( options, callback ){
     };
 };
 
-// TODO require('path')
 function createPath( p ){
     // fix for path.isAbsolute( 'R:' ) -> false.
     if( p.split( '' ).pop() === ':' ) return path.normalize( p );

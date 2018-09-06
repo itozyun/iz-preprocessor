@@ -606,29 +606,36 @@ var ReplaceRange = Range.inherits(
 	};
 
 return {
-	collectExComments : function( textLines ){
-		console.log( '*** start!' );
+	collectExComments : function( textLines, enabledOptions ){
+		console.log( 'iz-preprosessor start! ---' );
 
 		Target.LIST.length = Group.LIST.length = Option.LIST.length =
 		ReplaceRange.LIST.length = Range.LIST.length = 0;
 
-		 var range = collectTags( textLines ),
+		var range = collectTags( textLines ),
 		 	i, l, item, targets = [],
 			ary1, ary2;
+		
+		if( enabledOptions && enabledOptions.push ){
+			for( i = 0, l = enabledOptions.length; i < l; ++i ){
+				Option.imports( enabledOptions[ i ] );
+				console.log( enabledOptions[ i ] );
+			};
+		};
 
 		 if( range ){
-			console.log('@ ターゲット環境\t\t', Target.LIST.length, '件' );
-			console.log('# グルーピングラベル\t', Group.LIST.length, '件' );
-			console.log('+ オプション\t\t', Option.LIST.length, '件' );
+			console.log('@ target : ', Target.LIST.length );
+			console.log('# group  : ', Group.LIST.length );
+			console.log('+ option : ', Option.LIST.length );
 			for( i = 0, l = Option.LIST.length, ary1 = [], ary2 = []; i < l; ++i ){
 				item = Option.LIST[ i ];
 				item.isImported() ? ary1.push( item.tag ) : ary2.push( item.tag );
 			};
-			console.log( '..有効なオプション:', ary1.join( ',' ) );
-			console.log( '..無効なオプション:', ary2.join( ',' ) );
+			console.log( '.. enabled  options : ', ary1.join( ',' ) );
+			console.log( '.. disabled options : ', ary2.join( ',' ) );
 
-			console.log('レンジ\t\t\t', Range.LIST.length - 1, '件' );
-			console.log('置換レンジ\t\t', ReplaceRange.LIST.length, '件' );
+			console.log('Range         :', Range.LIST.length - 1 );
+			console.log('Replace range :', ReplaceRange.LIST.length );
 
 			for( i = 1, ary3 = []; i < Range.LIST.length; ++i ){
 				item = Range.LIST[ i ];
