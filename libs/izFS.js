@@ -89,10 +89,9 @@ function find( options, callback ){
 
         if( killed ) return;
 
-        fileName = e.path.split( '/' ).pop();
-
         switch( e.type ){
             case 'readFileSuccess' :
+                fileName = e.path.split( '/' ).pop();
                 // e.stats.isDirectory() || console.log( minimatch( fileName, options.include ) );
                 if( e.stats.isDirectory() ){
                     if( !options.exclude || !minimatch( fileName, options.exclude ) ){
@@ -190,7 +189,7 @@ function read( options, callback ){
             path   : convertSeparator( targetFile.path ),
             stats  : targetFile.stats
         };
-        if( targetFile.data ) obj.data = targetFile.data.toString();
+        obj.data = targetFile.data ? targetFile.data.toString() : '';
         callback( obj );
         reset();
     };

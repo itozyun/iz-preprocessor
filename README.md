@@ -186,6 +186,7 @@ From version 0.0.2, add build parameters to settings.json.
                             "include"  : "scss/**.scss",
                             "exclude"  : "node_modules"
                         },
+                        "imports" : [ "mobileOnly" ],
                         "output" : "precompiled_1/scss"
                     },
                     {
@@ -217,7 +218,6 @@ From version 0.0.2, add build parameters to settings.json.
 ## Projects in use
 
 1. [web-doc-base](https://github.com/itozyun/web-doc-base) "Super project for itozyun's Web document projects"
-2. [blogger-base](https://github.com/itozyun/blogger-base) "Common project for Blogger templete"
-3. [OutCloud](http://outcloud.blogspot.com/) "itozyun's blog"
+2. [OutCloud](http://outcloud.blogspot.com/) "itozyun's blog"
 
 **Enjoy!**
