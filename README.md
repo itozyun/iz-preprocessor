@@ -1,5 +1,7 @@
 # iz preprocessor
 
+Warning! Project update stopped. Subsequent projects will be developed as gulp plugins. Check out [gulp-iz-preprocessor](https://github.com/itozyun/gulp-iz-preprocessor).
+
 ## Overview
 
 1. Build for each targets
